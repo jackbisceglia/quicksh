@@ -1,0 +1,24 @@
+{
+  "name": "quicksh",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "quicksh": "./src/index.ts"
+  },
+  "scripts": {
+    "qsh": "bun run ./src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@effect/ai": "^0.18.16",
+    "@effect/cli": "^0.63.11",
+    "@effect/platform-bun": "^0.69.16"
+  }
+}
