@@ -5,6 +5,7 @@ import { Effect, pipe } from "effect";
 import { BunRuntime, BunContext } from "@effect/platform-bun";
 import { InitializeCommand } from "./cli/initialize-command";
 import { AskCommand } from "./cli/ask-command";
+import { OpenAI } from "./lib/llm/clients";
 
 const content = {
   name: "quicksh",
@@ -20,8 +21,8 @@ function program() {
       name: content.name,
       version: content.version,
     }),
-    Effect.provide(BunContext.layer)
+    Effect.provide(BunContext.layer),
   );
 }
 
-program().pipe(BunRuntime.runMain);
+program().pipe(Effect.provide(OpenAI), BunRuntime.runMain);

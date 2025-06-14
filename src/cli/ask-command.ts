@@ -1,10 +1,10 @@
 import { Args, Command } from "@effect/cli";
 import { Options } from "@effect/cli";
-import { how as howLib } from "../lib/how";
+import { how } from "../lib/how";
 import { Console, Effect, pipe } from "effect";
-import { models } from "../lib/models";
 import { withBold, withBrackets, withIndent, withPadding } from "./style";
 import { copyToClipboard } from "../lib/clipboard";
+import { MODELS } from "../lib/llm/providers";
 
 const config = {
   command: { name: "how" },
@@ -18,21 +18,17 @@ const config = {
 
 type LogOptions = {
   model: string;
-  prompt: string;
   indent: number;
   prefix: string;
 };
 
-function Format(options: LogOptions) {
+function Format(opts: LogOptions) {
   const user = "you";
   const assistant = "qsh";
 
   function userMessage(prompt: string) {
     const indicator = withBold(withBrackets(user));
-    const body = withIndent(options.prompt, {
-      tabsize: 2,
-      prefix: options.prefix,
-    });
+    const body = withIndent(prompt, { tabsize: 2, prefix: opts.prefix });
 
     const content = [indicator, body].join("\n");
 
@@ -43,7 +39,7 @@ function Format(options: LogOptions) {
     const indicator = withBold(withBrackets(assistant));
     const body = withIndent(explanation, {
       tabsize: 2,
-      prefix: options.prefix,
+      prefix: opts.prefix,
     });
 
     const content = [indicator, body].join("\n");
@@ -65,9 +61,9 @@ function Format(options: LogOptions) {
 const Prompt = Args.text({ name: config.args.prompt.name });
 
 const Model = pipe(
-  Options.choice(config.options.model.name, models.supported),
+  Options.choice(config.options.model.name, MODELS.supported),
   Options.withAlias(config.options.model.alias),
-  Options.withDefault(models.default)
+  Options.withDefault(MODELS.default),
 );
 
 export const AskCommand = Command.make(
@@ -77,18 +73,17 @@ export const AskCommand = Command.make(
     Effect.gen(function* () {
       const fmt = Format({
         model: options.model,
-        prompt: options.prompt,
         indent: 2,
         prefix: "⬝",
       });
 
       yield* Console.log(fmt.userMessage(options.prompt));
 
-      const llm = yield* howLib(options.model, options.prompt);
+      const response = yield* how(options.prompt);
 
-      yield* Console.log(fmt.assistantMessage(llm.explanation));
+      yield* Console.log(fmt.assistantMessage(response.value.explanation));
 
-      yield* copyToClipboard(llm.command);
-      yield* Console.log(fmt.conclusion(llm.command));
-    })
+      yield* copyToClipboard(response.value.command);
+      yield* Console.log(fmt.conclusion(response.value.command));
+    }),
 );

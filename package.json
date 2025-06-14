@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@effect/ai": "^0.18.16",
+    "@effect/ai-openai": "^0.21.16",
     "@effect/cli": "^0.63.11",
     "@effect/platform-bun": "^0.69.16"
   }

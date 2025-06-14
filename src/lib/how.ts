@@ -1,86 +1,30 @@
-import { Effect, Config, Data, Console } from "effect";
+import { baseSystemPrompt } from "./llm/prompts";
+import { pipe, Schema } from "effect";
+import { LLM } from "../lib/llm";
+import { withProcessedTemplate, withPrefix } from "./string";
+import { ProvideModel } from "./llm/providers";
 
-class NoResonseError extends Data.TaggedError("NoResonseError")<{
-  m: string;
-}> {}
-class InvalidResonseError extends Data.TaggedError("InvalidResonseError")<{
-  m: string;
-}> {}
+const system = pipe(
+  baseSystemPrompt,
+  withPrefix(`
+    When given a user's query:
+      1. Analyze the intent behind the request.
+      2. Provide a concise natural-language description of the intended action.
+      3. Output only the exact shell command needed to accomplish it, with no additional explanation.
 
-// NOTE: THIS IS LARGELY AI GEN'D
-// TODO: REPLACE WITH EFFECT/AI
-export function how(model: string, prompt: string) {
-  return Effect.gen(function* () {
-    const apiKey = yield* Config.string("OPENAI_API_KEY");
+    The generated command will be copied directly to the user's clipboard.
+  `),
+  withProcessedTemplate,
+);
 
-    const response = yield* Effect.tryPromise({
-      try: () =>
-        fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model,
-            messages: [
-              {
-                role: "system",
-                content:
-                  "You are a helpful CLI assistant. Provide concise, practical answers.",
-              },
-              {
-                role: "user",
-                content: prompt,
-              },
-            ],
-            response_format: {
-              type: "json_schema",
-              json_schema: {
-                name: "bash_assistant_output",
-                strict: true,
-                schema: {
-                  type: "object",
-                  properties: {
-                    explanation: { type: "string" },
-                    command: { type: "string" },
-                  },
-                  required: ["explanation", "command"],
-                  additionalProperties: false,
-                },
-              },
-            },
-          }),
-        }),
-      catch: (error) => new Error(`Failed to call OpenAI API: ${error}`),
-    });
-
-    const data = yield* Effect.tryPromise({
-      try: () => response.json(),
-      catch: (error) => new Error(`Failed to parse response: ${error}`),
-    }) as Effect.Effect<any, Error, never>;
-
-    const content = JSON.parse((data as any).choices?.[0]?.message?.content);
-
-    if (!content) {
-      return yield* new NoResonseError({ m: "No response received" });
-    }
-
-    if (!content.explanation || !content.command) {
-      const missing = [content.explanation, content.command].filter((b) => !b);
-      yield* Console.log("missing: ", content.explanation, content.command);
-      const property = missing.length > 1 ? "properties" : "property";
-
-      return yield* new InvalidResonseError({
-        m: `Invalid response received, missing "${missing.join(
-          ", "
-        )}" ${property} in response`,
-      });
-    }
-
-    return {
-      explanation: content.explanation as string,
-      command: content.command as string,
-    };
+export function how(prompt: string) {
+  const schema = Schema.Struct({
+    explanation: Schema.String,
+    command: Schema.String,
   });
+
+  return pipe(
+    LLM.generateObject({ system, prompt, schema }),
+    ProvideModel("gpt-4o-mini"),
+  );
 }
