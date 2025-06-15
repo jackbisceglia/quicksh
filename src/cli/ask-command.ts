@@ -79,7 +79,7 @@ export const AskCommand = Command.make(
 
       yield* Console.log(fmt.userMessage(options.prompt));
 
-      const response = yield* how(options.prompt);
+      const response = yield* how(options.prompt, options.model);
 
       yield* Console.log(fmt.assistantMessage(response.value.explanation));
 

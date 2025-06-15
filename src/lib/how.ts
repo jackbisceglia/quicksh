@@ -2,7 +2,7 @@ import { baseSystemPrompt } from "./llm/prompts";
 import { pipe, Schema } from "effect";
 import { LLM } from "../lib/llm";
 import { withProcessedTemplate, withPrefix } from "./string";
-import { ProvideModel } from "./llm/providers";
+import { MODELS, ProvideModel, type SupportedModel } from "./llm/providers";
 
 const system = pipe(
   baseSystemPrompt,
@@ -17,7 +17,7 @@ const system = pipe(
   withProcessedTemplate,
 );
 
-export function how(prompt: string) {
+export function how(prompt: string, model?: SupportedModel) {
   const schema = Schema.Struct({
     explanation: Schema.String,
     command: Schema.String,
@@ -25,6 +25,6 @@ export function how(prompt: string) {
 
   return pipe(
     LLM.generateObject({ system, prompt, schema }),
-    ProvideModel("gpt-4o-mini"),
+    ProvideModel(model ?? MODELS.default),
   );
 }

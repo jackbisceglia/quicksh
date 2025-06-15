@@ -3,7 +3,7 @@ import type { AiLanguageModel, AiModel } from "@effect/ai";
 import { OpenAiLanguageModel } from "@effect/ai-openai";
 import type { OpenAiClient } from "@effect/ai-openai/OpenAiClient";
 
-type SupportedModel = (typeof MODELS.supported)[number];
+export type SupportedModel = (typeof MODELS.supported)[number];
 
 export const MODELS = {
   default: "gpt-4.1-nano" as const,
